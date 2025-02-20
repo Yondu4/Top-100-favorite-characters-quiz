@@ -18,12 +18,12 @@
     }
     /* Adjust body padding so content doesn't hide behind fixed header */
     body {
-  background-color: white;
-  margin: 0;
-  padding: 20px;
-  padding-top: 220px; 
-  font-family: Arial, sans-serif;
-}
+      background-color: white;
+      margin: 0;
+      padding: 20px;
+      padding-top: 220px; 
+      font-family: Arial, sans-serif;
+    }
     h1 {
       text-align: center;
     }
@@ -120,21 +120,28 @@
     .character.guessed .label {
       display: block;
     }
-    /* Leaderboard styling */
-    #leaderboard {
-      margin: 20px auto;
-      max-width: 400px;
+    /* Results Container styling */
+    #resultsContainer {
+      display: none; /* Hidden until the quiz ends */
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    #leaderboard, #stats {
+      flex: 1;
+      min-width: 300px;
       border: 2px solid #ccc;
       padding: 10px;
     }
-    #leaderboard h2 {
+    #leaderboard h2, #stats h2 {
       text-align: center;
     }
-    #leaderboard ul {
+    #leaderboard ul, #stats ul {
       list-style: none;
       padding: 0;
     }
-    #leaderboard li {
+    #leaderboard li, #stats li {
       padding: 4px;
       border-bottom: 1px solid #ddd;
     }
@@ -661,10 +668,16 @@
       <div class="label"></div>
     </div>
   </div>
-<!-- Leaderboard Section (initially hidden) -->
-  <div id="leaderboard" style="display:none;">
-    <h2>Leaderboard (Top 10)</h2>
-    <ul id="leaderboardList"></ul>
+ <!-- Results Container: Leaderboard and Stats (initially hidden) -->
+  <div id="resultsContainer" style="display: none;">
+    <div id="leaderboard">
+      <h2>Leaderboard (Top 10)</h2>
+      <ul id="leaderboardList"></ul>
+    </div>
+    <div id="stats">
+      <h2>Character Stats</h2>
+      <ul id="statsList"></ul>
+    </div>
   </div>
 
   <script>
@@ -683,7 +696,7 @@
     const timerDiv = document.getElementById('timer');
     const scoreDiv = document.getElementById('score');
     const guessBarDiv = document.getElementById('guessBar');
-    const leaderboardDiv = document.getElementById('leaderboard');
+    const resultsContainer = document.getElementById('resultsContainer');
     const leaderboardList = document.getElementById('leaderboardList');
     
     // Start Quiz button event
@@ -748,16 +761,6 @@
       });
     }
     
-    // Function to end quiz
-    function endQuiz(message) {
-      if (!quizStarted) return;
-      quizStarted = false;
-      revealAllAnswers();
-      alert(message);
-      updateLeaderboard();
-      leaderboardDiv.style.display = 'block';
-    }
-    
     // Function to update local leaderboard (top 10) using localStorage
     function updateLeaderboard() {
       let leaderboard = JSON.parse(localStorage.getItem('characterQuizLeaderboard')) || [];
@@ -772,7 +775,51 @@
         leaderboardList.appendChild(li);
       });
     }
+    
+    // Function to update character stats and display them
+    function updateStats() {
+      // Retrieve or initialize stats object from localStorage
+      let stats = JSON.parse(localStorage.getItem('characterQuizStats')) || {};
+      // Loop over each character element
+      document.querySelectorAll('.character').forEach(character => {
+        let charNum = character.dataset.number;
+        let charName = character.dataset.answer.split(',')[0].trim();
+        if (!stats[charNum]) {
+          stats[charNum] = { total: 0, correct: 0, name: charName };
+        }
+        // For every completed quiz, we count one chance per character
+        stats[charNum].total++;
+        if (character.classList.contains('guessed')) {
+          stats[charNum].correct++;
+        }
+      });
+      // Save updated stats
+      localStorage.setItem('characterQuizStats', JSON.stringify(stats));
+      
+      // Display stats in the stats section
+      const statsList = document.getElementById('statsList');
+      statsList.innerHTML = "";
+      // Sort the stats by character number
+      Object.keys(stats).sort((a, b) => a - b).forEach(num => {
+        let entry = stats[num];
+        let percentage = (entry.total > 0) ? Math.round((entry.correct / entry.total) * 100) : 0;
+        let li = document.createElement('li');
+        li.textContent = entry.name + " -> " + percentage + "% (" + entry.correct + "/" + entry.total + ")";
+        statsList.appendChild(li);
+      });
+    }
+    
+    // Function to end quiz
+    function endQuiz(message) {
+      if (!quizStarted) return;
+      quizStarted = false;
+      revealAllAnswers();
+      alert(message);
+      updateLeaderboard();
+      updateStats();
+      // Show the combined results container (leaderboard and stats)
+      resultsContainer.style.display = 'flex';
+    }
   </script>
 </body>
 </html>
-
